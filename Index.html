@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NBA Impact Score</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #101010;
+    --border: #1e1e1e;
+    --accent-current: #c8f135;
+    --accent-alltime: #ff6b35;
+    --text: #e0e0e0;
+    --muted: #555;
+    --pos: #c8f135;
+    --neg: #ff4455;
+    --neu: #888;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', 'Courier New', monospace; min-height: 100vh; padding: 28px 18px 60px; }
+  .wrap { max-width: 580px; margin: 0 auto; }
+  .eyebrow { font-size: 10px; letter-spacing: 5px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .title { font-family: Impact, Haettenschweiler, sans-serif; font-size: 52px; line-height: 0.88; color: #fff; letter-spacing: 2px; margin-bottom: 10px; }
+  .title span { color: var(--accent-current); transition: color 0.2s; }
+  .sub { font-size: 10px; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+  .toggle { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
+  .toggle-btn { flex: 1; padding: 13px 8px; background: transparent; border: none; cursor: pointer; font-family: Impact, Haettenschweiler, sans-serif; font-size: 15px; letter-spacing: 2px; color: var(--muted); transition: all 0.15s; }
+  .toggle-btn.active-current { background: var(--accent-current); color: #000; }
+  .toggle-btn.active-alltime { background: var(--accent-alltime); color: #000; }
+  .mode-desc { font-size: 10px; color: var(--muted); margin-bottom: 18px; line-height: 1.6; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .pill { font-size: 9px; padding: 4px 8px; border-radius: 2px; background: #111; border: 1px solid var(--border); color: var(--muted); letter-spacing: 1px; }
+  .pill strong { color: var(--accent-current); transition: color 0.2s; }
+  .input-box { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 18px; margin-bottom: 14px; }
+  .input-label { font-size: 10px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 10px; }
+  textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font-family: 'DM Mono', 'Courier New', monospace; font-size: 13px; padding: 12px; resize: none; outline: none; line-height: 1.7; transition: border-color 0.2s; }
+  textarea:focus { border-color: var(--accent-current); }
+  .run-btn { width: 100%; background: var(--accent-current); color: #000; border: none; border-radius: 3px; padding: 16px; font-family: Impact, Haettenschweiler, sans-serif; font-size: 22px; letter-spacing: 3px; cursor: pointer; transition: all 0.15s; }
+  .run-btn:disabled { background: #1a1a1a; color: #333; cursor: not-allowed; }
+  .loading { margin-top: 14px; display: none; }
+  .loading-bar { width: 100%; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; }
+  .loading-bar-fill { height: 100%; width: 40%; background: var(--accent-current); border-radius: 1px; animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { 0% { transform: translateX(-150%); } 100% { transform: translateX(400%); } }
+  .loading-text { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-align: center; margin-top: 8px; }
+  .error-box { background: #1a0000; border: 1px solid #3a0000; border-radius: 4px; padding: 14px; margin-top: 14px; font-size: 11px; color: var(--neg); line-height: 1.7; word-break: break-word; display: none; }
+  .results { margin-top: 28px; display: none; }
+  .results-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .results-title { font-family: Impact, Haettenschweiler, sans-serif; font-size: 24px; letter-spacing: 2px; color: #fff; }
+  .results-meta { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-align: right; line-height: 1.6; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px; margin-bottom: 10px; animation: fadeUp 0.3s ease forwards; opacity: 0; transform: translateY(8px); }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .rank-name { display: flex; align-items: baseline; gap: 10px; }
+  .rank { font-family: Impact, Haettenschweiler, sans-serif; font-size: 28px; color: var(--muted); line-height: 1; min-width: 32px; }
+  .rank.top { color: var(--accent-current); }
+  .player-name { font-family: Impact, Haettenschweiler, sans-serif; font-size: 22px; color: #fff; letter-spacing: 1px; line-height: 1; }
+  .player-meta { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 3px; }
+  .career-badge { display: inline-block; font-size: 9px; padding: 2px 6px; border-radius: 2px; background: #1a1a00; border: 1px solid #3a3a00; color: #aaaa00; margin-top: 4px; letter-spacing: 1px; }
+  .composite { text-align: right; }
+  .composite-val { font-family: Impact, Haettenschweiler, sans-serif; font-size: 36px; line-height: 1; }
+  .composite-label { font-size: 9px; color: var(--muted); letter-spacing: 2px; margin-top: 2px; }
+  .split-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .split-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); width: 22px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 3px; background: #1a1a1a; border-radius: 2px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 2px; position: absolute; }
+  .split-val { font-size: 11px; font-weight: 500; width: 42px; text-align: right; flex-shrink: 0; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .stat-cell { background: var(--bg); border-radius: 3px; padding: 7px 8px; }
+  .stat-cell-label { font-size: 8px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 3px; }
+  .stat-cell-val { font-size: 13px; font-weight: 500; }
+  .ineligible { font-size: 11px; color: var(--muted); padding-top: 4px; }
+  .footer-note { font-size: 9px; color: #222; text-align: center; margin-top: 24px; letter-spacing: 1px; }
+  .pos { color: var(--pos); }
+  .neg { color: var(--neg); }
+  .neu { color: var(--neu); }
+
+  /* alltime mode overrides */
+  body.alltime .title span { color: var(--accent-alltime); }
+  body.alltime .pill strong { color: var(--accent-alltime); }
+  body.alltime textarea:focus { border-color: var(--accent-alltime); }
+  body.alltime .run-btn { background: var(--accent-alltime); }
+  body.alltime .loading-bar-fill { background: var(--accent-alltime); }
+  body.alltime .rank.top { color: var(--accent-alltime); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">NBA Player Analysis</div>
+  <div class="title">IMPACT<br/><span id="titleAccent">SCORE</span></div>
+  <div class="sub">Per-100 possessions · Normalized to league average<br/>0 = average · + = above · − = below</div>
+
+  <div class="toggle">
+    <button class="toggle-btn active-current" id="btnCurrent" onclick="setMode('current')">2024–25 SEASON</button>
+    <button class="toggle-btn" id="btnAlltime" onclick="setMode('alltime')">ALL-TIME CAREER</button>
+  </div>
+  <div class="mode-desc" id="modeDesc">Current season stats · 15 MPG minimum · Active players only</div>
+
+  <div class="pills">
+    <div class="pill">OFF EFF <strong>22%</strong></div>
+    <div class="pill">PLAYMAKING <strong>20%</strong></div>
+    <div class="pill">SCORING CREATE <strong>10%</strong></div>
+    <div class="pill">DEFENSE <strong>22%</strong></div>
+    <div class="pill">REBOUNDING <strong>16%</strong></div>
+    <div class="pill">D-RTG <strong>10%</strong></div>
+  </div>
+
+  <div class="input-box">
+    <label class="input-label" for="playerInput">Enter player names — one per line</label>
+    <textarea id="playerInput" rows="5" placeholder="LeBron James&#10;Nikola Jokic&#10;SGA&#10;Luka Doncic"></textarea>
+  </div>
+
+  <button class="run-btn" id="runBtn" onclick="calculate()">CALCULATE IMPACT</button>
+
+  <div class="loading" id="loading">
+    <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+    <div class="loading-text">ANALYZING STATS...</div>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="results" id="results">
+    <div class="results-header">
+      <div class="results-title">RANKINGS</div>
+      <div class="results-meta" id="resultsMeta"></div>
+    </div>
+    <div id="cards"></div>
+  </div>
+
+  <div class="footer-note" id="footerNote">2024–25 REGULAR SEASON · 15 MPG MINIMUM</div>
+</div>
+
+<script>
+// ── REPLACE THIS WITH YOUR ANTHROPIC API KEY ──
+const API_KEY = 'YOUR_API_KEY_HERE';
+
+let mode = 'current';
+
+const DEFAULT_AVG = { ts_pct:0.574, usg_pct:20.0, ast_pct:14.5, tov_pct:12.8, ftr:0.258, stl_pct:1.1, blk_pct:1.1, pf_per100:2.9, orb_pct:4.5, drb_pct:13.8, drtg:114.5 };
+const DEFAULT_STD = { ts_pct:0.048, usg_pct:5.2, ast_pct:8.4, tov_pct:3.5, ftr:0.11, stl_pct:0.55, blk_pct:0.75, pf_per100:0.8, orb_pct:3.2, drb_pct:5.6, drtg:4.8 };
+
+function setMode(m) {
+  mode = m;
+  document.body.classList.toggle('alltime', m === 'alltime');
+  document.getElementById('btnCurrent').className = 'toggle-btn' + (m === 'current' ? ' active-current' : '');
+  document.getElementById('btnAlltime').className = 'toggle-btn' + (m === 'alltime' ? ' active-alltime' : '');
+  document.getElementById('modeDesc').textContent = m === 'current'
+    ? 'Current season stats · 15 MPG minimum · Active players only'
+    : 'Career average across all 15+ MPG seasons · Any era · Era-adjusted to prime years';
+  document.getElementById('playerInput').placeholder = m === 'current'
+    ? 'LeBron James\nNikola Jokic\nSGA\nLuka Doncic'
+    : "Michael Jordan\nKobe Bryant\nShaquille O'Neal\nTim Duncan";
+  document.getElementById('footerNote').textContent = m === 'current'
+    ? '2024–25 REGULAR SEASON · 15 MPG MINIMUM'
+    : 'CAREER AVERAGE · ERA-ADJUSTED TO PRIME YEARS';
+  document.getElementById('results').style.display = 'none';
+}
+
+function zScore(val, stat, inv, avg, std) {
+  const s = (val - avg[stat]) / std[stat];
+  return inv ? -s : s;
+}
+
+function calcScores(p) {
+  if (!p.mpg || p.mpg < 15) return { ...p, composite: null, off: null, def: null };
+  const avg = mode === 'alltime' ? p.league_avg : DEFAULT_AVG;
+  const std = mode === 'alltime' ? p.league_std : DEFAULT_STD;
+  const z = (val, stat, inv) => zScore(val, stat, inv, avg, std);
+  const offEff = (z(p.ts_pct,'ts_pct',false) + z(p.usg_pct,'usg_pct',false)) / 2;
+  const play   = (z(p.ast_pct,'ast_pct',false) + z(p.tov_pct,'tov_pct',true)) / 2;
+  const score  = z(p.ftr,'ftr',false);
+  const def3   = (z(p.stl_pct,'stl_pct',false) + z(p.blk_pct,'blk_pct',false) + z(p.pf_per100,'pf_per100',true)) / 3;
+  const reb    = (z(p.orb_pct,'orb_pct',false) + z(p.drb_pct,'drb_pct',false)) / 2;
+  const drtg   = z(p.drtg,'drtg',true);
+  const composite = offEff*0.22 + play*0.20 + score*0.10 + def3*0.22 + reb*0.16 + drtg*0.10;
+  const off = offEff*0.44 + play*0.40 + score*0.16;
+  const def = (def3*0.69 + reb*0.16 + drtg*0.15) * 0.52;
+  return { ...p, composite, off, def };
+}
+
+function fmt(v) { return v == null ? 'N/A' : (v >= 0 ? '+' : '') + v.toFixed(2); }
+function scoreClass(v) { return v == null ? 'neu' : v > 0.15 ? 'pos' : v < -0.15 ? 'neg' : 'neu'; }
+function barW(v) { return Math.min(Math.abs(v||0) / 3 * 50, 50); }
+
+const CURRENT_PROMPT = (ps) =>
+`You are an NBA stats engine. Return 2024-25 regular season per-100 possession stats for each player listed.
+PLAYERS: ${ps.join(', ')}
+Return ONLY a raw JSON array, no markdown, no backticks, no explanation:
+[{"name":"Full Name","team":"ABV","position":"PG","season":"2024-25","mpg":34.2,"ts_pct":0.612,"usg_pct":28.4,"ast_pct":32.1,"tov_pct":12.3,"ftr":0.312,"stl_pct":1.8,"blk_pct":0.9,"pf_per100":2.8,"orb_pct":3.1,"drb_pct":18.4,"drtg":112.3}]
+If a player did not play in 2024-25 or played under 15 MPG set mpg to 0. Raw JSON array only, nothing else.`;
+
+const ALLTIME_PROMPT = (ps) =>
+`You are an NBA historical stats engine. For each player return their career averages across ALL seasons where they averaged 15+ MPG, weighted by games played, using per-100 possessions. Provide era-adjusted league averages from the middle of their prime years.
+PLAYERS: ${ps.join(', ')}
+Return ONLY a raw JSON array, no markdown, no backticks, no explanation:
+[{"name":"Full Name","team":"CHI","position":"SG","career_span":"1984-2003","seasons_qualified":15,"mpg":38.3,"ts_pct":0.570,"usg_pct":32.5,"ast_pct":27.8,"tov_pct":11.4,"ftr":0.430,"stl_pct":2.6,"blk_pct":1.1,"pf_per100":2.5,"orb_pct":3.2,"drb_pct":15.8,"drtg":99.5,"league_avg":{"ts_pct":0.530,"usg_pct":20.0,"ast_pct":13.5,"tov_pct":13.8,"ftr":0.310,"stl_pct":1.2,"blk_pct":1.1,"pf_per100":3.0,"orb_pct":5.0,"drb_pct":14.0,"drtg":105.0},"league_std":{"ts_pct":0.044,"usg_pct":5.0,"ast_pct":7.8,"tov_pct":3.2,"ftr":0.105,"stl_pct":0.52,"blk_pct":0.72,"pf_per100":0.78,"orb_pct":3.1,"drb_pct":5.3,"drtg":4.6}}]
+Use era-accurate league averages for the middle of each player's prime. If unknown set mpg to 0. Raw JSON array only, nothing else.`;
+
+async function calculate() {
+  const players = document.getElementById('playerInput').value.trim().split('\n').map(p => p.trim()).filter(Boolean);
+  if (!players.length) return;
+
+  const btn = document.getElementById('runBtn');
+  const loading = document.getElementById('loading');
+  const errorBox = document.getElementById('errorBox');
+  const results = document.getElementById('results');
+
+  btn.disabled = true;
+  loading.style.display = 'block';
+  errorBox.style.display = 'none';
+  results.style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: mode === 'current' ? CURRENT_PROMPT(players) : ALLTIME_PROMPT(players) }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error('API: ' + data.error.type + ' — ' + data.error.message);
+    if (!data.content || !data.content.length) throw new Error('Empty response: ' + JSON.stringify(data).slice(0, 300));
+
+    const raw = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('No JSON array in response: ' + raw.slice(0, 300));
+
+    const parsed = JSON.parse(match[0]);
+    const scored = parsed.map(calcScores);
+    scored.sort((a, b) => {
+      if (a.composite == null) return 1;
+      if (b.composite == null) return -1;
+      return b.composite - a.composite;
+    });
+
+    renderResults(scored);
+
+  } catch(e) {
+    errorBox.textContent = e.message;
+    errorBox.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  loading.style.display = 'none';
+}
+
+function renderResults(players) {
+  const results = document.getElementById('results');
+  const cards = document.getElementById('cards');
+  const meta = document.getElementById('resultsMeta');
+
+  meta.innerHTML = players.filter(p => p.composite != null).length + ' PLAYERS<br/>' + (mode === 'current' ? '2024–25' : 'CAREER AVG · ERA-ADJ');
+  cards.innerHTML = '';
+
+  players.forEach((p, i) => {
+    const isTop = i < 3;
+    const ineligible = p.composite == null;
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.style.animationDelay = (i * 60) + 'ms';
+
+    const badgeHtml = mode === 'alltime' && p.career_span
+      ? `<div class="career-badge">${p.career_span} · ${p.seasons_qualified} SEASONS</div>`
+      : '';
+
+    div.innerHTML = `
+      <div class="card-top">
+        <div class="rank-name">
+          <div class="rank${isTop ? ' top' : ''}">${i+1}</div>
+          <div>
+            <div class="player-name">${p.name}</div>
+            <div class="player-meta">${p.team} · ${p.position} · ${p.mpg ? p.mpg.toFixed(1)+' MPG' : 'N/A'}</div>
+            ${badgeHtml}
+          </div>
+        </div>
+        <div class="composite">
+          <div class="composite-val ${scoreClass(p.composite)}">${fmt(p.composite)}</div>
+          <div class="composite-label">IMPACT</div>
+        </div>
+      </div>
+      ${!ineligible ? `
+        <div class="split-row">
+          <div class="split-label">OFF</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${barW(p.off)}%;background:#ff6b35"></div></div>
+          <div class="split-val ${scoreClass(p.off)}">${fmt(p.off)}</div>
+        </div>
+        <div class="split-row">
+          <div class="split-label">DEF</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${barW(p.def)}%;background:#4a9eff"></div></div>
+          <div class="split-val ${scoreClass(p.def)}">${fmt(p.def)}</div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-cell"><div class="stat-cell-label">TS%</div><div class="stat-cell-val">${(p.ts_pct*100).toFixed(1)}%</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">USG%</div><div class="stat-cell-val">${p.usg_pct.toFixed(1)}%</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">AST%</div><div class="stat-cell-val">${p.ast_pct.toFixed(1)}%</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">TOV%</div><div class="stat-cell-val">${p.tov_pct.toFixed(1)}%</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">STL%</div><div class="stat-cell-val">${p.stl_pct.toFixed(1)}%</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">D-RTG</div><div class="stat-cell-val">${p.drtg.toFixed(1)}</div></div>
+        </div>
+      ` : '<div class="ineligible">Did not qualify · Not found or &lt; 15 MPG</div>'}
+    `;
+    cards.appendChild(div);
+  });
+
+  results.style.display = 'block';
+}
+</script>
+</body>
+</html>
